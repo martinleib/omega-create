@@ -1,26 +1,34 @@
-export function Hero() {
+import {Link} from '@remix-run/react';
+
+export function Hero({hero}) {
+  const header =
+    hero?.fields.find((field) => field.key === 'header')?.value || '';
+  const description =
+    hero?.fields.find((field) => field.key === 'description')?.value || '';
+  const productUrlField =
+    hero?.fields.find((field) => field.key === 'product_url')?.value || '';
+  const productData = JSON.parse(productUrlField);
+
   return (
     <div className="mx-12 my-8">
-      <div className="relative">
-        <img
-          src="/omega-hero.png"
-          alt="Hero"
-          className="w-full h-[30vh] object-cover rounded-xl"
-        />
-        <div className="absolute inset-0 flex flex-col justify-center p-8 text-white">
-          <h2 className="text-2xl font-bold mb-2">
-            Check out our newest release!
-          </h2>
-          <p className="text-lg max-w-2xl">
-            ALECTO (<span className="text-gray-300">@stevenjavier</span>) just
-            dropped his complete Production Suite featuring over 123+ sounds and
-            drum loops inspired by your favorite Latin-Pop and Reggaeton
-            production.
-          </p>
-        </div>
+      <Link to={productData.url} target='_blank' className="block">
+        <div className="relative">
+          <img
+            src="/omega-hero.png"
+            alt="Hero"
+            className="w-full h-[30vh] object-cover rounded-xl"
+          />
+          <div className="absolute inset-0 bg-black/40 rounded-xl" />
 
-        {/*<div className="absolute inset-0 bg-black/40 rounded-xl" />*/}
-      </div>
+          <div className="absolute inset-0 flex flex-col justify-center p-8 text-white">
+            <h2 className="text-2xl font-bold mb-2">{header}</h2>
+            <p className="text-lg max-w-2xl">{description}</p>
+            <span className="mt-4 inline-block px-6 py-2 bg-white text-black rounded-full hover:bg-gray-100 transition-colors w-fit">
+              Shop Now
+            </span>
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }

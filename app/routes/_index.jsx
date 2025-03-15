@@ -49,17 +49,28 @@ function loadDeferredData({context}) {
       return null;
     });
 
+  const heroData = context.storefront
+    .query(HERO_METAOBJECT_QUERY)
+    .catch((error) => {
+      console.error(error);
+      return null;
+    });
+
   return {
     allProducts,
+    hero: heroData,
   };
 }
 
 export default function Homepage() {
-  /** @type {LoaderReturnData} */
   const data = useLoaderData();
   return (
     <div className="home">
-      <Hero />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Await resolve={data.hero}>
+          {(heroData) => <Hero hero={heroData?.hero} />}
+        </Await>
+      </Suspense>
       <FeaturedCollection collection={data.featuredCollection} />
       <AllProducts products={data.allProducts} />
     </div>
@@ -195,6 +206,21 @@ const ALL_PRODUCTS_QUERY = `#graphql
         nodes {
           ...ProductDetails
         }
+      }
+    }
+  }
+`;
+
+const HERO_METAOBJECT_QUERY = `#graphql
+  query HeroMetaobject ($country: CountryCode, $language: LanguageCode)
+    @inContext(country: $country, language: $language) {
+    hero: metaobject(handle: {
+      handle: "newest-release-information-qs5zqkx4",
+      type: "newest_release_information"
+    }) {
+      fields {
+        key
+        value
       }
     }
   }
