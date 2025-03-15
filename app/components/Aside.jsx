@@ -43,7 +43,7 @@ export function Aside({children, heading, type}) {
       role="dialog"
     >
       <button className="close-outside" onClick={close} />
-      <aside>
+      <aside className="z-40">
         <header>
           <h3>{heading}</h3>
           <button className="close reset" onClick={close} aria-label="Close">

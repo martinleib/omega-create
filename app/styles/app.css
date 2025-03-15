@@ -353,7 +353,7 @@ button.reset:hover:not(:has(> *)) {
   object-fit: cover;
 }
 
-.recommended-products-grid {
+.all-products-grid {
   display: grid;
   grid-gap: 1.5rem;
   grid-template-columns: repeat(2, 1fr);
@@ -362,7 +362,7 @@ button.reset:hover:not(:has(> *)) {
   }
 }
 
-.recommended-product img {
+.all-product img {
   height: auto;
 }
 

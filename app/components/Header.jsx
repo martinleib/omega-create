@@ -1,4 +1,4 @@
-import {Suspense} from 'react';
+import {Suspense, useEffect, useState} from 'react';
 import {Await, NavLink, useAsyncValue} from '@remix-run/react';
 import {useAnalytics, useOptimisticCart} from '@shopify/hydrogen';
 import {useAside} from '~/components/Aside';
@@ -8,19 +8,49 @@ import {useAside} from '~/components/Aside';
  */
 export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
   const {shop, menu} = header;
+
+  const [hasScrolled, setHasScrolled] = useState(false);
+  const [currentlyScrollingUp, setScrollingUp] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const {type: asideType} = useAside();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty(
+      '--announcement-height',
+      hasScrolled ? '0px' : '40px',
+    );
+    root.style.setProperty('--header-height', hasScrolled ? '64px' : '80px');
+
+    const handleScroll = () => {
+      if (asideType !== 'closed') return;
+      const currentScrollY = window.scrollY;
+      setScrollingUp(currentScrollY < lastScrollY);
+      setLastScrollY(currentScrollY);
+      setHasScrolled(currentScrollY > 50);
+    };
+
+    window.addEventListener('scroll', handleScroll, {passive: true});
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY, hasScrolled, currentlyScrollingUp]);
+
   return (
-    <header className="header">
-      <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
-        <strong>{shop.name}</strong>
-      </NavLink>
-      <HeaderMenu
-        menu={menu}
-        viewport="desktop"
-        primaryDomainUrl={header.shop.primaryDomain.url}
-        publicStoreDomain={publicStoreDomain}
-      />
-      <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
-    </header>
+    <div className="sticky top-0 left-0 right-0 h-[var(--header-height)] bg-white z-20 transition-all duration-300 ease-in-out">
+      <div className="mx-12">
+        <header className="mx-10 flex items-center gap-4 h-[var(--header-height)] transition-all duration-300 ease-in-out">
+          <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
+            <img src="/omega-ico.png" className="w-10" />
+          </NavLink>
+          <HeaderMenu
+            menu={menu}
+            viewport="desktop"
+            primaryDomainUrl={header.shop.primaryDomain.url}
+            publicStoreDomain={publicStoreDomain}
+          />
+          <HeaderCtas isLoggedIn={isLoggedIn} cart={cart} />
+        </header>
+      </div>
+    </div>
   );
 }
 
@@ -43,17 +73,6 @@ export function HeaderMenu({
 
   return (
     <nav className={className} role="navigation">
-      {viewport === 'mobile' && (
-        <NavLink
-          end
-          onClick={close}
-          prefetch="intent"
-          style={activeLinkStyle}
-          to="/"
-        >
-          Home
-        </NavLink>
-      )}
       {(menu || FALLBACK_HEADER_MENU).items.map((item) => {
         if (!item.url) return null;
 
@@ -144,7 +163,7 @@ function CartBadge({count}) {
         });
       }}
     >
-      Cart {count === null ? <span>&nbsp;</span> : count}
+      Cart ({count === null ? <span>&nbsp;</span> : count})
     </a>
   );
 }

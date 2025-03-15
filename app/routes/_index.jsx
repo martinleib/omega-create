@@ -1,6 +1,7 @@
 import {Await, useLoaderData, Link} from '@remix-run/react';
 import {Suspense} from 'react';
 import {Image, Money} from '@shopify/hydrogen';
+import {Hero} from '~/components/Hero';
 
 /**
  * @type {MetaFunction}
@@ -23,14 +24,12 @@ export async function loader(args) {
 }
 
 /**
- * Load data necessary for rendering content above the fold. This is the critical data
- * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
+ * Load data necessary for rendering content above the fold.
  * @param {LoaderFunctionArgs}
  */
 async function loadCriticalData({context}) {
   const [{collections}] = await Promise.all([
     context.storefront.query(FEATURED_COLLECTION_QUERY),
-    // Add other queries here, so that they are loaded in parallel
   ]);
 
   return {
@@ -39,22 +38,19 @@ async function loadCriticalData({context}) {
 }
 
 /**
- * Load data for rendering content below the fold. This data is deferred and will be
- * fetched after the initial page load. If it's unavailable, the page should still 200.
- * Make sure to not throw any errors here, as it will cause the page to 500.
+ * Load data for rendering content below the fold.
  * @param {LoaderFunctionArgs}
  */
 function loadDeferredData({context}) {
-  const recommendedProducts = context.storefront
-    .query(RECOMMENDED_PRODUCTS_QUERY)
+  const allProducts = context.storefront
+    .query(ALL_PRODUCTS_QUERY)
     .catch((error) => {
-      // Log query errors, but don't throw them so the page can still render
       console.error(error);
       return null;
     });
 
   return {
-    recommendedProducts,
+    allProducts,
   };
 }
 
@@ -63,8 +59,9 @@ export default function Homepage() {
   const data = useLoaderData();
   return (
     <div className="home">
+      <Hero />
       <FeaturedCollection collection={data.featuredCollection} />
-      <RecommendedProducts products={data.recommendedProducts} />
+      <AllProducts products={data.allProducts} />
     </div>
   );
 }
@@ -78,58 +75,65 @@ function FeaturedCollection({collection}) {
   if (!collection) return null;
   const image = collection?.image;
   return (
-    <Link
-      className="featured-collection"
-      to={`/collections/${collection.handle}`}
-    >
-      {image && (
-        <div className="featured-collection-image">
-          <Image data={image} sizes="100vw" />
-        </div>
-      )}
-      <h1>{collection.title}</h1>
-    </Link>
+    <section className="mx-12 my-12">
+      <Link
+        className="featured-collection"
+        to={`/collections/${collection.handle}`}
+      >
+        {image && (
+          <div className="featured-collection-image">
+            <Image data={image} sizes="100vw" />
+          </div>
+        )}
+        <h1>Products</h1>
+      </Link>
+    </section>
   );
 }
 
 /**
  * @param {{
- *   products: Promise<RecommendedProductsQuery | null>;
+ *   products: Promise<AllProductsQuery | null>;
  * }}
  */
-function RecommendedProducts({products}) {
+function AllProducts({products}) {
   return (
-    <div className="recommended-products">
-      <h2>Recommended Products</h2>
+    <section className="all-products mx-12">
       <Suspense fallback={<div>Loading...</div>}>
         <Await resolve={products}>
           {(response) => (
-            <div className="recommended-products-grid">
-              {response
-                ? response.products.nodes.map((product) => (
-                    <Link
-                      key={product.id}
-                      className="recommended-product"
-                      to={`/products/${product.handle}`}
-                    >
-                      <Image
-                        data={product.images.nodes[0]}
-                        aspectRatio="1/1"
-                        sizes="(min-width: 45em) 20vw, 50vw"
+            <div className="all-products-grid">
+              {response?.collection?.products?.nodes.map((product) => (
+                <Link
+                  key={product.id}
+                  className="all-product"
+                  to={`/products/${product.handle}`}
+                >
+                  <Image
+                    data={product.images.nodes[0]}
+                    aspectRatio="1/1"
+                    sizes="(min-width: 45em) 20vw, 50vw"
+                  />
+                  <h4 className="mt-2">{product.title}</h4>
+                  <p className="vendor-name mt-0">{product.vendor}</p>
+                  <small className="flex gap-2">
+                    {product.compareAtPriceRange.minVariantPrice.amount >
+                      product.priceRange.minVariantPrice.amount && (
+                      <Money
+                        className="line-through text-gray-500"
+                        data={product.compareAtPriceRange.minVariantPrice}
                       />
-                      <h4>{product.title}</h4>
-                      <small>
-                        <Money data={product.priceRange.minVariantPrice} />
-                      </small>
-                    </Link>
-                  ))
-                : null}
+                    )}
+                    <Money data={product.priceRange.minVariantPrice} />
+                  </small>
+                </Link>
+              )) || null}
             </div>
           )}
         </Await>
       </Suspense>
       <br />
-    </div>
+    </section>
   );
 }
 
@@ -156,12 +160,19 @@ const FEATURED_COLLECTION_QUERY = `#graphql
   }
 `;
 
-const RECOMMENDED_PRODUCTS_QUERY = `#graphql
-  fragment RecommendedProduct on Product {
+const ALL_PRODUCTS_QUERY = `#graphql
+  fragment ProductDetails on Product {
     id
     title
     handle
+    vendor
     priceRange {
+      minVariantPrice {
+        amount
+        currencyCode
+      }
+    }
+    compareAtPriceRange {
       minVariantPrice {
         amount
         currencyCode
@@ -177,11 +188,13 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
       }
     }
   }
-  query RecommendedProducts ($country: CountryCode, $language: LanguageCode)
+  query CollectionProducts ($country: CountryCode, $language: LanguageCode)
     @inContext(country: $country, language: $language) {
-    products(first: 4, sortKey: UPDATED_AT, reverse: true) {
-      nodes {
-        ...RecommendedProduct
+    collection(handle: "show-on-home-page") {
+      products(first: 50, sortKey: TITLE) {
+        nodes {
+          ...ProductDetails
+        }
       }
     }
   }
@@ -190,5 +203,5 @@ const RECOMMENDED_PRODUCTS_QUERY = `#graphql
 /** @typedef {import('@shopify/remix-oxygen').LoaderFunctionArgs} LoaderFunctionArgs */
 /** @template T @typedef {import('@remix-run/react').MetaFunction<T>} MetaFunction */
 /** @typedef {import('storefrontapi.generated').FeaturedCollectionFragment} FeaturedCollectionFragment */
-/** @typedef {import('storefrontapi.generated').RecommendedProductsQuery} RecommendedProductsQuery */
+/** @typedef {import('storefrontapi.generated').AllProductsQuery} AllProductsQuery */
 /** @typedef {import('@shopify/remix-oxygen').SerializeFrom<typeof loader>} LoaderReturnData */
