@@ -2,12 +2,12 @@ import {Await, useLoaderData, Link} from '@remix-run/react';
 import {Suspense} from 'react';
 import {Image, Money} from '@shopify/hydrogen';
 import {Hero} from '~/components/Hero';
-
+import {Produced} from '~/components/Produced';
 /**
  * @type {MetaFunction}
  */
 export const meta = () => {
-  return [{title: 'Hydrogen | Home'}];
+  return [{title: 'Omega-Create'}];
 };
 
 /**
@@ -56,9 +56,17 @@ function loadDeferredData({context}) {
       return null;
     });
 
+  const producedData = context.storefront
+    .query(PRODUCED_METAOBJECT_QUERY)
+    .catch((error) => {
+      console.error(error);
+      return null;
+    });
+
   return {
     allProducts,
     hero: heroData,
+    produced: producedData,
   };
 }
 
@@ -73,6 +81,11 @@ export default function Homepage() {
       </Suspense>
       <FeaturedCollection collection={data.featuredCollection} />
       <AllProducts products={data.allProducts} />
+      <Suspense fallback={<div>Loading...</div>}>
+        <Await resolve={data.produced}>
+          {(producedData) => <Produced produced={producedData?.produced} />}
+        </Await>
+      </Suspense>
     </div>
   );
 }
@@ -96,7 +109,7 @@ function FeaturedCollection({collection}) {
             <Image data={image} sizes="100vw" />
           </div>
         )}
-        <h1>Products</h1>
+        <h1>Featured Products</h1>
       </Link>
     </section>
   );
@@ -217,6 +230,21 @@ const HERO_METAOBJECT_QUERY = `#graphql
     hero: metaobject(handle: {
       handle: "newest-release-information-qs5zqkx4",
       type: "newest_release_information"
+    }) {
+      fields {
+        key
+        value
+      }
+    }
+  }
+`;
+
+const PRODUCED_METAOBJECT_QUERY = `#graphql
+  query ProducedByUsMetaobject ($country: CountryCode, $language: LanguageCode)
+    @inContext(country: $country, language: $language) {
+    produced: metaobject(handle: {
+      handle: "produced-by-omega-playlist-rntw8mza",
+      type: "produced_by_omega_playlist"
     }) {
       fields {
         key

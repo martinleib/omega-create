@@ -1,4 +1,5 @@
 import {Link} from '@remix-run/react';
+import {Image} from '@shopify/hydrogen';
 
 export function Hero({hero}) {
   const header =
@@ -11,12 +12,14 @@ export function Hero({hero}) {
 
   return (
     <div className="mx-12 my-8">
-      <Link to={productData.url} target='_blank' className="block">
+      <Link to={productData.url} className="block">
         <div className="relative">
-          <img
+          <Image
             src="/omega-hero.png"
             alt="Hero"
             className="w-full h-[30vh] object-cover rounded-xl"
+            sizes="100vw"
+            loading="eager"
           />
           <div className="absolute inset-0 bg-black/40 rounded-xl" />
 

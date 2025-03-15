@@ -24,6 +24,9 @@ export default async function handleRequest(
     },
   });
 
+  // Update the CSP header to include frame-src and frame-ancestors for Spotify
+  const updatedHeader = `${header}; frame-src 'self' https://open.spotify.com/; frame-ancestors 'self' https://open.spotify.com/;`;
+
   const body = await renderToReadableStream(
     <NonceProvider>
       <RemixServer context={remixContext} url={request.url} nonce={nonce} />
@@ -43,7 +46,7 @@ export default async function handleRequest(
   }
 
   responseHeaders.set('Content-Type', 'text/html');
-  responseHeaders.set('Content-Security-Policy', header);
+  responseHeaders.set('Content-Security-Policy', updatedHeader);
 
   return new Response(body, {
     headers: responseHeaders,
