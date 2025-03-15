@@ -35,7 +35,7 @@ export function Header({header, isLoggedIn, cart, publicStoreDomain}) {
   }, [lastScrollY, hasScrolled, currentlyScrollingUp]);
 
   return (
-    <div className="sticky top-0 left-0 right-0 h-[var(--header-height)] bg-white z-20 transition-all duration-300 ease-in-out">
+    <div className="sticky top-0 left-0 right-0 h-[var(--header-height)] bg-white transition-all duration-300 ease-in-out">
       <div className="mx-12">
         <header className="mx-10 flex items-center gap-4 h-[var(--header-height)] transition-all duration-300 ease-in-out">
           <NavLink prefetch="intent" to="/" style={activeLinkStyle} end>
